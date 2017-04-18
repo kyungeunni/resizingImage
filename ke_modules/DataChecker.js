@@ -42,8 +42,8 @@ class DataChecker {
                                 */
                                 return this.newSizeImageProcessor(result);
                             })
-                            .then(result=>{
-                                 
+                            .then(result => {
+
                                 resolve(result);
                             })
                             .catch(error => {
@@ -60,16 +60,16 @@ class DataChecker {
                         this.storeResizedData(result.basicInfo._id, result.resizedInfo);
                         */
                         this.newSizeImageProcessor(result.basicInfo)
-                        .then(result=>{
-                            
-                            resolve(result);
-                        },error=>{
-                            reject(error);
-                        });
+                            .then(result => {
+
+                                resolve(result);
+                            }, error => {
+                                reject(error);
+                            });
                     } else {
                         //it has been called with same url, same size --> use the info we have
                         console.log('[+] I know everyting! -> no calculating! ')
-                        return resolve(result);
+                        return resolve(result.resizedInfo);
                     }
                 }, error => {
                     console.log(error);
@@ -87,7 +87,8 @@ class DataChecker {
                     imageName: data.imageName,
                     origWidth: data.width,
                     origHeight: data.height,
-                    ratio: data.ratio
+                    ratio: data.ratio,
+                    type: data.type
                 })
                 .then(result => {
                     console.log('Basic Info INSERTED in MONGO!');
@@ -98,8 +99,8 @@ class DataChecker {
         });
     }
 
-    storeResizedData(metaId, data) {
-        mongoQuery.insertLogData(metaId, data);
+    storeResizedData(metaId, data,imageName, type) {
+        mongoQuery.insertLogData(metaId, data, imageName, type);
     }
 
     calcNewSize(ratio) {
@@ -126,9 +127,9 @@ class DataChecker {
         return {};
     }
 
-    saveNewSizeImage(fileName, width = '', height = '') {
+    saveNewSizeImage(fileName, width, height) {
         return imageResizer.resize({
-            src: IMGPATH +'/'+ fileName,
+            src: IMGPATH + '/' + fileName,
             dst: `${IMGPATH}/${width}x${height}_${fileName}`,
             width: width,
             height: height
@@ -142,16 +143,21 @@ class DataChecker {
             if (!newSize) {
                 //need to return origin image
                 console.log('original size...');
+                newSize = {
+                    resizedWidth: basicInfo.origWidth,
+                    resizedHeight: basicInfo.origHeight
+                }
             } else {
                 console.log('new size calculated!');
-                this.storeResizedData(basicInfo._id, newSize);
             }
 
             this.saveNewSizeImage(basicInfo.imageName, newSize.resizedWidth, newSize.resizedHeight)
                 .then((result) => {
                     console.log(result);
+                    this.storeResizedData(basicInfo._id, newSize, result.path, result.type);
                     resolve(result);
-                }, error => {
+                    
+                },error => {
                     console.log(error);
                     reject(error);
                 });

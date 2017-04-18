@@ -16,6 +16,7 @@ function getDimensions (filename){
                     console.log('image Size: '+ dimensions.width, dimensions.height);
 
                     dimensions.imageName = filename.substr(filename.lastIndexOf('/')+1);
+                    dimensions.type= filename.substr(filename.lastIndexOf('.')+1);
                     resolve(dimensions);
                 })
             });

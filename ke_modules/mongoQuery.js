@@ -16,12 +16,14 @@ let insertBasicData = function (data, callback) {
     });
 }
 
-let insertLogData = function (basicDataId, logData) {
+let insertLogData = function (basicDataId, logData, imageName, type) {
     resizingInfoModel.create(
         {
             metadataId: basicDataId,
             resizedWidth: logData.resizedWidth,
-            resizedHeight: logData.resizedHeight
+            resizedHeight: logData.resizedHeight,
+            path:imageName,
+            type: type
         }, (error, result) => {
             if (error) {
                 console.log(error);
@@ -32,30 +34,27 @@ let insertLogData = function (basicDataId, logData) {
 
 let getMetaData = function (hashedUrl, width, height) {
     return new Promise((resolve, reject) => {
-        dataModel.findOne({ hashedUrl: hashedUrl }, { _id: true, imageName: true, ratio: true }, (error, metaData) => {
-            if (error) {
-                console.log(error);
+        let metadata = null;
+        dataModel.findOne({ hashedUrl: hashedUrl }, { _id: true, imageName: true, ratio: true })
+            .then(metaData => {
+                if (!metaData) {
+                    resolve(null);
+                    return;
+                }
+                metadata = metaData;
+                return resizingInfoModel.findOne(
+                    {
+                        metadataId: metaData._id,
+                        $or: [{ resizedWidth: width }, { resizedHeight: height }]
+                    });
+            })
+            .then(result => {
+                //if there's no history of that size, undefined will be delivered.
+                resolve({ basicInfo: metadata, resizedInfo: result });
+            })
+            .catch(error => {
                 reject(error);
-                return;
-            }
-            if (!metaData) {
-                resolve(null);
-                return;
-            }
-
-
-            resizingInfoModel.findOne(
-                { metadataId: metaData._id, $or: [{ resizedWidth: width }, { resizedHeight: height }] }
-                , (error, result) => {
-                    if (error) {
-                        reject(error);
-                        return;
-                    }
-                    //if there's no history of that size, undefined will be delivered.
-
-                    resolve({ basicInfo: metaData, resizedInfo: result });
-                });
-        });
+            });
     });
 }
 
