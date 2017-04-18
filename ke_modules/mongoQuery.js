@@ -35,7 +35,7 @@ let insertLogData = function (basicDataId, logData, imageName, type) {
 let getMetaData = function (hashedUrl, width, height) {
     return new Promise((resolve, reject) => {
         let metadata = null;
-        dataModel.findOne({ hashedUrl: hashedUrl }, { _id: true, imageName: true, ratio: true })
+        dataModel.findOne({ hashedUrl: hashedUrl })
             .then(metaData => {
                 if (!metaData) {
                     resolve(null);

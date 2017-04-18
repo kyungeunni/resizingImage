@@ -124,7 +124,7 @@ class DataChecker {
             }
         }
 
-        return {};
+        return null;
     }
 
     saveNewSizeImage(fileName, width, height) {
