@@ -1,7 +1,8 @@
 let crypto = require('crypto');
+let promise = require('promise');
 let mongoQuery = require('./mongoQuery');
 let imageDownloader = require('./imageDownloader');
-
+let imageResizer = require('easyimage');
 
 
 class DataChecker {
@@ -18,63 +19,88 @@ class DataChecker {
         return this.urlHashed;
     }
 
-    scanDatabase(callback) {
-        mongoQuery
-            .getMetaData(this.hashUrl(), this.width, this.height)
-            .then((result) => {
-                //return format: {basicInfo:metaData, resizedInfo:result}
-                if (!result) {
-                    //new image url --> download the image & store metadata to basic info collection & calculate the size  & store it to resizing info collection.
-                    imageDownloader(this.url)
-                        .then(basicInfo => {
-                            console.log('[+] New url!');
-                            this.storeMetaData(basicInfo, (error, result) => {
-                                let newSize = this.calcNewSize(basicInfo.ratio);
+    scanDatabase() {
+        return new promise((resolve, reject) => {
+            mongoQuery
+                .getMetaData(this.hashUrl(), this.width, this.height)
+                .then((result) => {
+                    //return format: {basicInfo:metaData, resizedInfo:result}
+                    if (!result) {
+                        console.log('[+] New url!');
+                        let basicInfoOfImage = null;
+                        //new image url --> download the image & store metadata to basic info collection & calculate the size  & store it to resizing info collection.
+                        imageDownloader(this.url)
+                            .then(basicInfo => {
+                                basicInfoOfImage = basicInfo;
+                                return this.storeMetaData(basicInfo);
+                            })
+                            .then(result => {
+                                /*let newSize = this.calcNewSize(basicInfoOfImage.ratio);
                                 console.log('new size calculated!')
                                 this.storeResizedData(result._id, newSize);
-                                return callback(null, { basicInfo: result, resizedInfo: newSize });
+                                resolve({ basicInfo: result, resizedInfo: newSize });
+                                */
+                                return this.newSizeImageProcessor(result);
                             })
-                        })
-                } else if (!result.resizedInfo) {
-                    //new size called --> 1. calculate the size & store it to resizing info collection.
-                    console.log('[+] exist url & new size...');
-                    result.resizedInfo = this.calcNewSize(result.basicInfo.ratio);
-                    console.log('new size calculated!')
-                    this.storeResizedData(result.basicInfo._id, result.resizedInfo);
-                    return callback(null, result);
-                } else {
-                    //it has been called with same url, same size --> use the info we have
-                    console.log('[+] I know everyting! -> no calculating! ')
-                    return callback(null, result);
-                }
-            }, error => {
-                console.log(error);
-                return callback(error, null);
-            })
-    }
+                            .then(result => {
 
-    storeMetaData(data, callback) {
-        mongoQuery.insertBasicData(
-            {
-                hashedUrl: this.urlHashed,
-                url: this.url,
-                imageName: data.imageName,
-                origWidth: data.width,
-                origHeight: data.height,
-                ratio: data.ratio
-            }
-            , (error, result) => {
-                if (error) {
+                                resolve(result);
+                            })
+                            .catch(error => {
+                                console.log(error);
+                                reject(error);
+                            });
+
+                    } else if (!result.resizedInfo) {
+                        //new size called --> 1. calculate the size & store it to resizing info collection.
+                        console.log('[+] exist url & new size...');
+                        /*
+                        result.resizedInfo = this.calcNewSize(result.basicInfo.ratio);
+                        console.log('new size calculated!')
+                        this.storeResizedData(result.basicInfo._id, result.resizedInfo);
+                        */
+                        this.newSizeImageProcessor(result.basicInfo)
+                            .then(result => {
+
+                                resolve(result);
+                            }, error => {
+                                reject(error);
+                            });
+                    } else {
+                        //it has been called with same url, same size --> use the info we have
+                        console.log('[+] I know everyting! -> no calculating! ')
+                        return resolve(result.resizedInfo);
+                    }
+                }, error => {
                     console.log(error);
-                    return callback(error, null);
-                }
-                console.log('Basic Info INSERTED in MONGO!');
-                return callback(null, result);
-            })
+                    return reject(error);
+                });
+        });
     }
 
-    storeResizedData(metaId, data) {
-        mongoQuery.insertLogData(metaId, data);
+    storeMetaData(data) {
+        return new Promise((resolve, reject) => {
+            mongoQuery
+                .insertBasicData({
+                    hashedUrl: this.urlHashed,
+                    url: this.url,
+                    imageName: data.imageName,
+                    origWidth: data.width,
+                    origHeight: data.height,
+                    ratio: data.ratio,
+                    type: data.type
+                })
+                .then(result => {
+                    console.log('Basic Info INSERTED in MONGO!');
+                    resolve(result);
+                }, error => {
+                    reject(error);
+                });
+        });
+    }
+
+    storeResizedData(metaId, data,imageName, type) {
+        mongoQuery.insertLogData(metaId, data, imageName, type);
     }
 
     calcNewSize(ratio) {
@@ -87,19 +113,59 @@ class DataChecker {
         if (this.width) {
             return {
                 resizedWidth: this.width,
-                resizedHeight: this.width * ratio
+                resizedHeight: Math.round(this.width * ratio)
             }
         }
 
         if (this.height) {
             return {
-                resizedWidth: this.height / ratio,
+                resizedWidth: Math.round(this.height / ratio),
                 resizedHeight: this.height
             }
         }
 
         return null;
     }
+
+    saveNewSizeImage(fileName, width, height) {
+        return imageResizer.resize({
+            src: IMGPATH + '/' + fileName,
+            dst: `${IMGPATH}/${width}x${height}_${fileName}`,
+            width: width,
+            height: height
+        });
+
+    }
+
+    newSizeImageProcessor(basicInfo) {
+        return new Promise((resolve, reject) => {
+            let newSize = this.calcNewSize(basicInfo.ratio);
+            if (!newSize) {
+                //need to return origin image
+                console.log('original size...');
+                newSize = {
+                    resizedWidth: basicInfo.origWidth,
+                    resizedHeight: basicInfo.origHeight
+                }
+            } else {
+                console.log('new size calculated!');
+            }
+
+            this.saveNewSizeImage(basicInfo.imageName, newSize.resizedWidth, newSize.resizedHeight)
+                .then((result) => {
+                    console.log(result);
+                    this.storeResizedData(basicInfo._id, newSize, result.path, result.type);
+                    resolve(result);
+                    
+                },error => {
+                    console.log(error);
+                    reject(error);
+                });
+        });
+    }
+
+
+
 }
 
 module.exports = DataChecker;

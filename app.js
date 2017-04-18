@@ -3,6 +3,7 @@ var http = require('http');
 var path = require('path');
 var images = require('./routes/images');
 
+global.IMGPATH = path.join(__dirname, 'public/images');
 var app = express();
 
 
