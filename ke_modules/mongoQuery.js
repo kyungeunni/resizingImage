@@ -4,14 +4,16 @@ let resizingInfoModel = require('./metadataSchema').log;
 
 
 let insertBasicData = function (data, callback) {
-    dataModel.create(data, (error, result) => {
-        if (error) {
-            console.log(error);
-            return callback(error, null);
-        }
-        console.log('Basic Data Inserted! -> image name:' + data.imageName);
-        return callback(null, result);
-    })
+    return new Promise((resolve, reject) => {
+        dataModel.create(data, (error, result) => {
+            if (error) {
+                console.log(error);
+                return reject(error);
+            }
+            console.log('Basic Data Inserted! -> image name:' + data.imageName);
+            resolve(result);
+        });
+    });
 }
 
 let insertLogData = function (basicDataId, logData) {
