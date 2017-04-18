@@ -1,0 +1,21 @@
+{
+  "name": "resize-images",
+  "version": "1.0.0",
+  "description": "first task for UB",
+  "main": "app.js",
+  "scripts": {
+    "test": "test",
+    "start":"node app.js"
+  },
+  "author": "Kyungeun Kim",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.15.2",
+    "image-downloader": "^3.2.1",
+    "image-size": "^0.5.1",
+    "jade": "^1.11.0",
+    "mongoose": "^4.9.4",
+    "promise": "^7.1.1",
+    "redis": "^2.7.1"
+  }
+}
