@@ -54,9 +54,9 @@ let getMetaData = function (hashedUrl, width, height) {
                     //if there's no history of that size, undefined will be delivered.
 
                     resolve({ basicInfo: metaData, resizedInfo: result });
-                })
-        })
-    })
+                });
+        });
+    });
 }
 
 module.exports = {

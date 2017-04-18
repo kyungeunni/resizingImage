@@ -2,7 +2,7 @@ let crypto = require('crypto');
 let promise = require('promise');
 let mongoQuery = require('./mongoQuery');
 let imageDownloader = require('./imageDownloader');
-
+let imageResizer = require('easyimage');
 
 
 class DataChecker {
@@ -35,10 +35,16 @@ class DataChecker {
                                 return this.storeMetaData(basicInfo);
                             })
                             .then(result => {
-                                let newSize = this.calcNewSize(basicInfoOfImage.ratio);
+                                /*let newSize = this.calcNewSize(basicInfoOfImage.ratio);
                                 console.log('new size calculated!')
                                 this.storeResizedData(result._id, newSize);
                                 resolve({ basicInfo: result, resizedInfo: newSize });
+                                */
+                                return this.newSizeImageProcessor(result);
+                            })
+                            .then(result=>{
+                                 
+                                resolve(result);
                             })
                             .catch(error => {
                                 console.log(error);
@@ -48,10 +54,18 @@ class DataChecker {
                     } else if (!result.resizedInfo) {
                         //new size called --> 1. calculate the size & store it to resizing info collection.
                         console.log('[+] exist url & new size...');
+                        /*
                         result.resizedInfo = this.calcNewSize(result.basicInfo.ratio);
                         console.log('new size calculated!')
                         this.storeResizedData(result.basicInfo._id, result.resizedInfo);
-                        return resolve(result);
+                        */
+                        this.newSizeImageProcessor(result.basicInfo)
+                        .then(result=>{
+                            
+                            resolve(result);
+                        },error=>{
+                            reject(error);
+                        });
                     } else {
                         //it has been called with same url, same size --> use the info we have
                         console.log('[+] I know everyting! -> no calculating! ')
@@ -98,19 +112,54 @@ class DataChecker {
         if (this.width) {
             return {
                 resizedWidth: this.width,
-                resizedHeight: this.width * ratio
+                resizedHeight: Math.round(this.width * ratio)
             }
         }
 
         if (this.height) {
             return {
-                resizedWidth: this.height / ratio,
+                resizedWidth: Math.round(this.height / ratio),
                 resizedHeight: this.height
             }
         }
 
-        return null;
+        return {};
     }
+
+    saveNewSizeImage(fileName, width = '', height = '') {
+        return imageResizer.resize({
+            src: IMGPATH +'/'+ fileName,
+            dst: `${IMGPATH}/${width}x${height}_${fileName}`,
+            width: width,
+            height: height
+        });
+
+    }
+
+    newSizeImageProcessor(basicInfo) {
+        return new Promise((resolve, reject) => {
+            let newSize = this.calcNewSize(basicInfo.ratio);
+            if (!newSize) {
+                //need to return origin image
+                console.log('original size...');
+            } else {
+                console.log('new size calculated!');
+                this.storeResizedData(basicInfo._id, newSize);
+            }
+
+            this.saveNewSizeImage(basicInfo.imageName, newSize.resizedWidth, newSize.resizedHeight)
+                .then((result) => {
+                    console.log(result);
+                    resolve(result);
+                }, error => {
+                    console.log(error);
+                    reject(error);
+                });
+        });
+    }
+
+
+
 }
 
 module.exports = DataChecker;
