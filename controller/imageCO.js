@@ -1,30 +1,20 @@
-let Promise = require('promise');
-let path = require('path');
-let DataChecker = require('../ke_modules/DataChecker');
-const imagePath = path.join(__dirname.substring(0, __dirname.lastIndexOf('/')), '/public/images/');
+const Promise = require('promise');
+const DataChecker = require('../ke_modules/DataChecker');
 
-exports.resize = function (query) {
+
+exports.resize = function(query) {
     return new Promise((resolve, reject) => {
-        let getImage = new DataChecker(query.url, query.width, query.height);
-        getImage.scanDatabase()
+        const getImage = new DataChecker(query.url, query.width, query.height);
+        getImage
+            .scanDatabase()
             .then(result => {
-                /*
-                console.log(`INFO:
-                width:${result.resizedInfo.resizedWidth},
-                height:${result.resizedInfo.resizedHeight}, 
-                imagepath:/images/${result.basicInfo.imageName}`);
-                imagePath: imagePath + result.basicInfo.imageName
-                */
                 console.log(result);
-                let resultSet = {
+                resolve({
                     status: 200,
-                    type:result.type,
-                    imagePath: result.path
-
-                };
-                resolve(resultSet);
+                    type: result.type,
+                    imagePath: result.path });
             }, error => {
                 reject(error);
             });
     });
-}
+};

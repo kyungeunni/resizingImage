@@ -1,9 +1,9 @@
-let Promise = require('promise');
-let dataModel = require('./metadataSchema').meta;
-let resizingInfoModel = require('./metadataSchema').log;
+const Promise = require('promise');
+const dataModel = require('./metadataSchema').meta;
+const resizingInfoModel = require('./metadataSchema').log;
 
 
-let insertBasicData = function (data, callback) {
+exports.insertBasicData = function(data) {
     return new Promise((resolve, reject) => {
         dataModel.create(data, (error, result) => {
             if (error) {
@@ -14,28 +14,27 @@ let insertBasicData = function (data, callback) {
             resolve(result);
         });
     });
-}
+};
 
-let insertLogData = function (basicDataId, logData, imageName, type) {
-    resizingInfoModel.create(
-        {
-            metadataId: basicDataId,
-            resizedWidth: logData.resizedWidth,
-            resizedHeight: logData.resizedHeight,
-            path:imageName,
-            type: type
-        }, (error, result) => {
-            if (error) {
-                console.log(error);
-                return;
-            }
-        });
-}
+exports.insertLogData = function(basicDataId, logData, imageName, type) {
+    resizingInfoModel.create({
+        metadataId: basicDataId,
+        resizedWidth: logData.resizedWidth,
+        resizedHeight: logData.resizedHeight,
+        path: imageName,
+        type,
+    }, error => {
+        if (error) {
+            console.log(error);
+            return;
+        }
+    });
+};
 
-let getMetaData = function (hashedUrl, width, height) {
+exports.getMetaData = function(hashedUrl, width, height) {
     return new Promise((resolve, reject) => {
         let metadata = null;
-        dataModel.findOne({ hashedUrl: hashedUrl })
+        dataModel.findOne({ hashedUrl })
             .then(metaData => {
                 if (!metaData) {
                     resolve(null);
@@ -45,7 +44,7 @@ let getMetaData = function (hashedUrl, width, height) {
                 return resizingInfoModel.findOne(
                     {
                         metadataId: metaData._id,
-                        $or: [{ resizedWidth: width }, { resizedHeight: height }]
+                        $or: [{ resizedWidth: width }, { resizedHeight: height }],
                     });
             })
             .then(result => {
@@ -56,11 +55,4 @@ let getMetaData = function (hashedUrl, width, height) {
                 reject(error);
             });
     });
-}
-
-module.exports = {
-    getMetaData: getMetaData,
-    insertBasicData: insertBasicData,
-    insertLogData: insertLogData
-}
-
+};
