@@ -1,10 +1,9 @@
-var express = require('express');
-var http = require('http');
-var path = require('path');
-var images = require('./routes/images');
+const express = require('express');
+const http = require('http');
+const path = require('path');
+const images = require('./routes/images');
 
-global.IMGPATH = path.join(__dirname, 'public/images');
-var app = express();
+const app = express();
 
 
 app.set('views', path.join(__dirname, 'views'));
@@ -12,30 +11,32 @@ app.set('view engine', 'jade');
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', images);
 
-
-app.use(function (req, res, next) {
-    var err = new Error('Not Found');
+app.use((req, res, next) => {
+    const err = new Error('Not Found');
     err.status = 404;
     next(err);
 });
 
 
-app.use(function (err, req, res, next) {
+app.use((err, req, res, next) => {
 
     res.locals.message = err.message;
     res.locals.error = req.app.get('env') === 'development' ? err : {};
 
     res.status(err.status || 500);
     res.render('error');
+    next();
 });
 
-var server = http.createServer(app);
+const server = http.createServer(app);
 
 server.listen('3000');
-server.on('error', (error) => {
+server.on('error',error => {
     console.error(error);
-})
+});
 
 server.on('listening', () => {
     console.log('http Server on port 3000...');
 });
+
+module.exports = server;
