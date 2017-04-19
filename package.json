@@ -4,7 +4,7 @@
   "description": "first task for UB",
   "main": "app.js",
   "scripts": {
-    "test": "test",
+    "test": "mocha",
     "start": "node app.js"
   },
   "author": "Kyungeun Kim",
@@ -20,7 +20,10 @@
     "redis": "^2.7.1"
   },
   "devDependencies": {
+    "chai-http": "^3.0.0",
+    "chai": "^3.5.0",
     "eslint": "^3.19.0",
-    "eslint-config-ub": "^1.0.4"
+    "eslint-config-ub": "^1.0.4",
+    "mocha": "^3.2.0"
   }
 }

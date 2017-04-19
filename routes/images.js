@@ -3,6 +3,12 @@ const router = express.Router();
 const controller = require('../controller/imageCO');
 
 router.get('/resize', (request, response, next) => {
+    if(!request.query.url){
+        let err = new Error('NO URL');
+        err.status=400;
+        next(err);
+        return;
+    }
     controller
         .resize(request.query)
         .then(result => {

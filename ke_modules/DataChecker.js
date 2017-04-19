@@ -37,11 +37,7 @@ class DataChecker {
                                 return this.storeMetaData(basicInfo);
                             })
                             .then(result => {
-                                /*let newSize = this.calcNewSize(basicInfoOfImage.ratio);
-                                console.log('new size calculated!')
-                                this.storeResizedData(result._id, newSize);
-                                resolve({ basicInfo: result, resizedInfo: newSize });
-                                */
+                                
                                 return this.newSizeImageProcessor(result);
                             })
                             .then(result => {
@@ -155,7 +151,6 @@ class DataChecker {
 
             this.saveNewSizeImage(basicInfo.imageName, newSize.resizedWidth, newSize.resizedHeight)
                 .then(result => {
-                    console.log(result);
                     this.storeResizedData(basicInfo._id, newSize, result.path, result.type);
                     resolve(result);
                 }, error => {

@@ -38,3 +38,5 @@ server.on('error',error => {
 server.on('listening', () => {
     console.log('http Server on port 3000...');
 });
+
+module.exports = server;
